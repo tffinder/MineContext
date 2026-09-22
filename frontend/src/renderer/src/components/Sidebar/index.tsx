@@ -5,6 +5,7 @@ import { Layout } from '@arco-design/web-react'
 import VaultTree from '@renderer/components/vault-tree'
 import UpdateAvailableButton from '@renderer/components/UpdateAvailableButton'
 import { useNavigation } from '@renderer/hooks/use-navigation'
+import { useI18n } from '@renderer/context/I18nProvider'
 import logo from '/src/assets/icons/logo.svg'
 import homeIcon from '/src/assets/icons/home.svg'
 import screenMonitorIcon from '/src/assets/icons/screen-monitor.svg'
@@ -13,44 +14,34 @@ import settings from '/src/assets/icons/settings.svg'
 // import resourcesIcon from '/src/assets/icons/resources.svg'
 // import { IconRobot } from '@arco-design/web-react/icon'
 import './index.css'
-import { CSSProperties } from 'react'
+import { CSSProperties, useMemo } from 'react'
 const { Sider } = Layout
 
-const tabItems = [
-  {
-    key: 'home',
-    icon: <img src={homeIcon} alt="home" style={{ width: 15, height: 15 }} />,
-    label: 'Home',
-    path: '/'
-  },
-  // {
-  //   key: 'ai-demo',
-  //   icon: <IconRobot style={{ width: 16, height: 16 }} />,
-  //   label: 'AI Demo',
-  //   path: '/ai-demo'
-  // },
-  {
-    key: 'screen-monitor',
-    icon: <img src={screenMonitorIcon} alt="screen-monitor" style={{ width: 15, height: 15 }} />,
-    label: 'Screen Monitor',
-    path: '/screen-monitor'
-  },
-  {
-    key: 'settings',
-    icon: <img src={settings} alt="settings" style={{ width: 15, height: 15 }} />,
-    label: 'Settings',
-    path: '/settings'
-  }
-  // {
-  //   key: 'files',
-  //   icon: <img src={resourcesIcon} alt="resources" style={{ width: 15, height: 15 }} />,
-  //   label: 'Resources',
-  //   path: '/files'
-  // },
-]
 
 const Sidebar = () => {
+  const { t } = useI18n()
   const { navigateToMainTab, isMainTabActive } = useNavigation()
+
+  const tabItems = useMemo(() => [
+    {
+      key: 'home',
+      icon: <img src={homeIcon} alt="home" style={{ width: 15, height: 15 }} />,
+      label: t('nav.home'),
+      path: '/'
+    },
+    {
+      key: 'screen-monitor',
+      icon: <img src={screenMonitorIcon} alt="screen-monitor" style={{ width: 15, height: 15 }} />,
+      label: t('nav.screenMonitor'),
+      path: '/screen-monitor'
+    },
+    {
+      key: 'settings',
+      icon: <img src={settings} alt="settings" style={{ width: 15, height: 15 }} />,
+      label: t('nav.settings'),
+      path: '/settings'
+    }
+  ], [t])
 
   const handleTabChange = (key: string) => {
     const item = tabItems.find((item) => item.key === key)

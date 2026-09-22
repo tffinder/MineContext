@@ -14,9 +14,11 @@ export const defaultScreenSettings = {
 
 export type ScreenSettings = typeof defaultScreenSettings;
 
+export type AppLanguage = 'zh' | 'en'
+
 const initialState = {
-  screenSettings: defaultScreenSettings
-  // other settings...
+  screenSettings: defaultScreenSettings,
+  language: 'zh' as AppLanguage
 }
 
 const settingSlice = createSlice({
@@ -25,10 +27,13 @@ const settingSlice = createSlice({
   reducers: {
     setScreenSettings(state, action: PayloadAction<Partial<ScreenSettings>>) {
       state.screenSettings = { ...state.screenSettings, ...action.payload }
+    },
+    setLanguage(state, action: PayloadAction<AppLanguage>) {
+      state.language = action.payload
     }
   }
 })
 
-export const { setScreenSettings } = settingSlice.actions
+export const { setScreenSettings, setLanguage } = settingSlice.actions
 
 export default settingSlice.reducer

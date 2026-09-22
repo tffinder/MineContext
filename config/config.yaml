@@ -24,45 +24,22 @@ document_processing:
   text_threshold_per_page: 50 # Scanned document threshold: pages with fewer characters than this value are considered scanned documents (requires VLM)
 
 vlm_model:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
-  model: "${LLM_MODEL}"
+  base_url: "https://t.eshore.cn:10443/v1/gdai/api/3vq9d7t42l8g/model/common"
+  api_key: "sk-anything"         # key 随意，网关不校验
+  model: "Qwen3.5-397B-A17B"
   # provider 可选值: openai / doubao / ollama / generic
   # - openai: OpenAI 及任何 OpenAI 兼容服务
   # - doubao: 火山方舟(Ark)专有协议
   # - ollama: 本地 Ollama 服务 (http://localhost:11434/v1)
   # - generic: 任意 OpenAI 兼容的第三方网关
-  provider: ""
-
-# 使用本地 Ollama 示例（需先 ollama pull 支持视觉的模型，如 llama3.2-vision、qwen2.5-vl 等）:
-# vlm_model:
-#   base_url: "http://localhost:11434/v1"
-#   api_key: "ollama"              # key 可为空，Ollama 不校验
-#   model: "llama3.2-vision"
-#   provider: "ollama"
-
-# 使用第三方 OpenAI 兼容网关示例（火山方舟通用网关 / 自建 vLLM 等）:
-# vlm_model:
-#   base_url: "https://t.eshore.cn:10443/v1/gdai/api/3vq9d7t42l8g/model/common"
-#   api_key: "sk-anything"         # key 随意，网关不校验
-#   model: "Qwen3.5-397B-A17B"
-#   provider: "generic"
+  provider: "generic"
 
 embedding_model:
-  base_url: "${EMBEDDING_BASE_URL}"
-  api_key: "${EMBEDDING_API_KEY}"
-  model: "${EMBEDDING_MODEL}"
-  # provider 同 vlm_model
-  provider: ""
-  output_dim: 2048
-
-# 使用本地 Ollama 做 embedding 示例（需先 ollama pull nomic-embed-text 等）:
-# embedding_model:
-#   base_url: "http://localhost:11434/v1"
-#   api_key: "ollama"
-#   model: "nomic-embed-text"
-#   provider: "ollama"
-#   output_dim: 768
+  base_url: "http://localhost:11434/v1"
+  api_key: "ollama"
+  model: "nomic-embed-text"
+  provider: "ollama"
+  output_dim: 768
 
 # Context capture module
 capture:

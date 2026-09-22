@@ -2,13 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { FC, useMemo, useEffect } from 'react'
-import { Form, Button, Select, Input, Typography, Spin, Message } from '@arco-design/web-react'
+import { Form, Button, Select, Input, Typography, Spin, Message, Radio } from '@arco-design/web-react'
 import { find, get, isEmpty, pick } from 'lodash'
 
 import ModelRadio from './components/modelRadio/model-radio'
 import { ModelTypeList, BaseUrl, embeddingModels, ModelInfoList } from './constants'
-import { getModelInfo, ModelConfigProps, updateModelSettingsAPI } from '../../services/Settings'
+import {
+  getModelInfo,
+  ModelConfigProps,
+  updateModelSettingsAPI,
+  setPromptLanguage
+} from '../../services/Settings'
 import { useMemoizedFn, useMount, useRequest } from 'ahooks'
+import { useI18n } from '../../context/I18nProvider'
 
 const FormItem = Form.Item
 const { Text } = Typography
@@ -29,20 +35,21 @@ export interface CustomFormItemsProps {
 }
 const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
   const { prefix } = props
+  const { t } = useI18n()
   return (
     <>
       <div className="flex flex-col gap-6 mb-6">
         <div className="flex flex-col gap-[8px]">
           <span className="text-[#0B0B0F] font-roboto text-base font-normal leading-[22px] ">
-            Vision language model
+            {t('settings.visionLanguageModel')}
           </span>
           <FormItem
             field={`${prefix}-modelId`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input
-              addBefore={<InputPrefix label="Model name" />}
+              addBefore={<InputPrefix label={t('settings.modelName')} />}
               placeholder="A VLM model with visual understanding capabilities is required."
               allowClear
               className="[&_.arco-input-inner-wrapper]: !w-[574px]"
@@ -51,11 +58,11 @@ const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
           <FormItem
             field={`${prefix}-baseUrl`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input
-              addBefore={<InputPrefix label="Base URL" />}
-              placeholder="Enter your base URL"
+              addBefore={<InputPrefix label={t('settings.baseUrl')} />}
+              placeholder={t('settings.enterBaseUrl')}
               allowClear
               className="[&_.arco-input-inner-wrapper]: !w-[574px]"
             />
@@ -63,11 +70,11 @@ const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
           <FormItem
             field={`${prefix}-apiKey`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input.Password
-              addBefore={<InputPrefix label="API Key" />}
-              placeholder="Enter your API Key"
+              addBefore={<InputPrefix label={t('settings.apiKey')} />}
+              placeholder={t('settings.enterApiKey')}
               allowClear
               className="!w-[574px]"
               defaultVisibility={false}
@@ -75,15 +82,15 @@ const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
           </FormItem>
         </div>
         <div className="flex flex-col gap-[8px]">
-          <span className="text-[#0B0B0F] font-roboto text-base font-normal leading-[22px]">Embedding model</span>
+          <span className="text-[#0B0B0F] font-roboto text-base font-normal leading-[22px]">{t('settings.embeddingModel')}</span>
           <FormItem
             field={`${prefix}-embeddingModelId`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input
-              addBefore={<InputPrefix label="Model name" />}
-              placeholder="Enter your embedding model name"
+              addBefore={<InputPrefix label={t('settings.modelName')} />}
+              placeholder={t('settings.enterApiKey')}
               allowClear
               className="!w-[574px]"
             />
@@ -91,11 +98,11 @@ const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
           <FormItem
             field={`${prefix}-embeddingBaseUrl`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input
-              addBefore={<InputPrefix label="Base URL" />}
-              placeholder="Enter your base URL"
+              addBefore={<InputPrefix label={t('settings.baseUrl')} />}
+              placeholder={t('settings.enterBaseUrl')}
               allowClear
               className="!w-[574px]"
             />
@@ -103,11 +110,11 @@ const CustomFormItems: FC<CustomFormItemsProps> = (props) => {
           <FormItem
             field={`${prefix}-embeddingApiKey`}
             className="!mb-0"
-            rules={[{ required: true, message: 'Cannot be empty' }]}
+            rules={[{ required: true, message: t('common.cannotBeEmpty') }]}
             requiredSymbol={false}>
             <Input.Password
-              addBefore={<InputPrefix label="API Key" />}
-              placeholder="Enter your API Key"
+              addBefore={<InputPrefix label={t('settings.apiKey')} />}
+              placeholder={t('settings.enterApiKey')}
               allowClear
               className="!w-[574px]"
               defaultVisibility={false}
@@ -124,6 +131,7 @@ export interface StandardFormItemsProps {
 }
 const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
   const { modelPlatform, prefix } = props
+  const { t } = useI18n()
   const option = useMemo(() => {
     const foundItem = find(ModelInfoList, (item) => item.value === modelPlatform)
     return foundItem ? foundItem.option : []
@@ -132,25 +140,25 @@ const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
   return (
     <>
       <FormItem
-        label="Select AI model"
+        label={t('settings.selectModel')}
         field={`${prefix}-modelId`}
         requiredSymbol={false}
         rules={[
           {
             validator(value, callback) {
               if (!value) {
-                callback('Please select AI model')
+                callback(t('common.pleaseSelect'))
               } else {
                 callback()
               }
             }
           }
         ]}>
-        <Select allowCreate placeholder="please select" options={option} className="!w-[574px]" />
+        <Select allowCreate placeholder={t('common.pleaseSelect')} options={option} className="!w-[574px]" />
       </FormItem>
       <FormItem
         requiredSymbol={false}
-        label="API Key"
+        label={t('settings.apiKey')}
         field={`${prefix}-apiKey`}
         extra={
           <div className="flex items-center text-[#6E718C] text-[14px] ">
@@ -172,7 +180,7 @@ const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
           {
             validator(value, callback) {
               if (!value) {
-                callback('Please enter your API key')
+                callback(t('common.pleaseEnter'))
               } else {
                 callback()
               }
@@ -181,7 +189,7 @@ const StandardFormItems: FC<StandardFormItemsProps> = (props) => {
         ]}>
         <Input.Password
           autoFocus
-          placeholder="Enter your API key"
+          placeholder={t('settings.enterApiKey')}
           allowClear
           className="!w-[574px]"
           defaultVisibility={false}
@@ -206,6 +214,7 @@ export type SettingsFormProps = SettingsFormBase & {
 }
 const Settings: FC<SettingsProps> = (props) => {
   const { closeSetting, init } = props
+  const { t, lang, setLang } = useI18n()
 
   const [form] = Form.useForm<SettingsFormProps>()
   const { run: getInfo, loading: getInfoLoading, data: modelInfo } = useRequest(getModelInfo, { manual: true })
@@ -292,14 +301,36 @@ const Settings: FC<SettingsProps> = (props) => {
     }
   }, [modelInfo, getInfoLoading])
 
+const handleLanguageChange = useMemoizedFn(async (value: string) => {
+    const newLang = value as 'zh' | 'en'
+    setLang(newLang)
+    try {
+      await setPromptLanguage(newLang)
+      Message.success(t('settings.languageChanged'))
+    } catch {
+      // 后端切换失败不影响前端
+    }
+  })
+
   return (
     <Spin loading={getInfoLoading} block className="[&_.arco-spin-children]:!h-full !h-full">
       <div className="top-0 left-0 flex flex-col h-full overflow-y-hidden py-2 pr-2 relative">
         <div className="bg-white rounded-[16px] pl-6 flex flex-col h-full overflow-y-auto overflow-x-hidden scrollbar-hide pb-2">
           <div className="mb-[12px]">
-            <div className="mt-[26px] mb-[10px] text-[24px] font-bold text-[#000]">Select a AI model to start</div>
+            <div className="flex justify-between items-center mt-[26px]">
+              <div className="text-[24px] font-bold text-[#000]">{t('settings.title')}</div>
+              <Radio.Group
+                value={lang}
+                onChange={handleLanguageChange}
+                type="button"
+                size="small"
+                style={{ marginRight: 24 }}>
+                <Radio value="zh">{t('settings.languageChinese')}</Radio>
+                <Radio value="en">{t('settings.languageEnglish')}</Radio>
+              </Radio.Group>
+            </div>
             <Text type="secondary" className="text-[13px]">
-              Configure AI model and API Key, then you can start MineContext’s intelligent context capability
+              {t('settings.subtitle')}
             </Text>
           </div>
 
@@ -313,7 +344,7 @@ const Settings: FC<SettingsProps> = (props) => {
                 [`${ModelTypeList.Doubao}-modelId`]: 'doubao-seed-1-6-flash-250828',
                 [`${ModelTypeList.OpenAI}-modelId`]: 'gpt-5-nano'
               }}>
-              <FormItem label="Model platform" field={'modelPlatform'} requiredSymbol={false}>
+              <FormItem label={t('settings.modelPlatform')} field={'modelPlatform'} requiredSymbol={false}>
                 <ModelRadio />
               </FormItem>
               <FormItem
@@ -339,7 +370,7 @@ const Settings: FC<SettingsProps> = (props) => {
             </Form>
             <Spin loading={updateLoading}>
               <Button type="primary" onClick={submit} disabled={updateLoading} className="!bg-[#000]">
-                {init ? 'Get started' : 'Save'}
+                {init ? t('settings.getStarted') : t('settings.save')}
               </Button>
             </Spin>
           </div>

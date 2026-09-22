@@ -14,6 +14,7 @@ import '@renderer/assets/theme/index.less'
 import 'allotment/dist/style.css'
 import LoadingComponent from './components/Loading'
 import { NotificationProvider } from './context/NotificationProvider'
+import { I18nProvider } from './context/I18nProvider'
 import Router from './Router'
 import { BackendStatus } from './components/Loading'
 import { CaptureSourcesProvider } from './atom/capture.atom'
@@ -21,9 +22,10 @@ import Settings from './pages/settings/settings'
 import { ServiceProvider, useObservableTask } from './atom/event-loop.atom'
 import { getLogger } from '@shared/logger/renderer'
 import { useMemoizedFn } from 'ahooks'
+import { useSelector } from 'react-redux'
+import type { RootState } from './store'
 
 const logger = getLogger('App.tsx')
-const isEnglish = true // Hardcode for now, will change later
 interface BackendStatusInfo {
   status: BackendStatus
   port: number
@@ -119,14 +121,18 @@ function AppContent(): React.ReactElement {
 }
 
 function App(): React.ReactElement {
+  const language = useSelector((state: RootState) => state.setting?.language ?? 'en')
+  const isEnglish = language === 'en'
   return (
     <Provider store={store}>
       <ConfigProvider locale={isEnglish ? enUS : zhCN}>
         <ServiceProvider>
           <NotificationProvider>
-            <PersistGate loading={null} persistor={persistor}>
-              <AppContent />
-            </PersistGate>
+            <I18nProvider>
+              <PersistGate loading={null} persistor={persistor}>
+                <AppContent />
+              </PersistGate>
+            </I18nProvider>
           </NotificationProvider>
         </ServiceProvider>
       </ConfigProvider>

@@ -52,3 +52,13 @@ export const updateModelSettingsAPI = async (
   })
   return get(res, 'data.data')
 }
+
+export const getPromptLanguage = async (): Promise<string | undefined> => {
+  const res = await axiosInstance.get<{ language: string }>('/api/settings/prompts/language')
+  return get(res, 'data.data.language')
+}
+
+export const setPromptLanguage = async (language: string): Promise<boolean> => {
+  const res = await axiosInstance.post('/api/settings/prompts/language', { language })
+  return get(res, 'data.code') === 0
+}
