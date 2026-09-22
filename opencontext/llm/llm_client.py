@@ -11,7 +11,6 @@ from enum import Enum
 from typing import Any, Dict, List
 
 from openai import APIError, AsyncOpenAI, OpenAI
-from volcenginesdkarkruntime import Ark
 
 from opencontext.models.context import Vectorize
 from opencontext.monitoring import record_processing_stage
@@ -23,6 +22,8 @@ logger = get_logger(__name__)
 class LLMProvider(Enum):
     OPENAI = "openai"
     DOUBAO = "doubao"
+    OLLAMA = "ollama"
+    GENERIC = "generic"  # 任意 OpenAI 兼容的第三方服务（含火山方舟通用网关等）
 
 
 class LLMType(Enum):
@@ -39,15 +40,26 @@ class LLMClient:
         self.base_url = config.get("base_url")
         self.timeout = config.get("timeout", 300)
         self.provider = config.get("provider", LLMProvider.OPENAI.value)
-        if not self.api_key or not self.base_url or not self.model:
-            raise ValueError("API key, base URL, and model must be provided")
+        if not self.base_url or not self.model:
+            raise ValueError("base URL and model must be provided")
+        # API key 可选：Ollama 及部分第三方网关不校验 key，允许为空
+        self.api_key = self.api_key or "sk-no-key-required"
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
         self.async_client = AsyncOpenAI(
             api_key=self.api_key, base_url=self.base_url, timeout=self.timeout
         )
+        # Doubao embedding 走 Ark 专有协议；其余（OpenAI/Ollama/Generic）均走 OpenAI 兼容协议
         if self.provider == LLMProvider.DOUBAO.value and self.llm_type == LLMType.EMBEDDING:
-            self.client = Ark(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
-            self.async_client = None
+            try:
+                from volcenginesdkarkruntime import Ark
+
+                self.client = Ark(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
+                self.async_client = None
+            except ImportError:
+                logger.warning("Ark SDK not available, falling back to OpenAI-compatible client")
+        # Ollama 使用 OpenAI 兼容端点（/v1），但 embedding 时需自行处理返回结构差异
+        self._is_ollama = self.provider == LLMProvider.OLLAMA.value
+        self._is_generic = self.provider == LLMProvider.GENERIC.value
 
     def generate(self, prompt: str, **kwargs) -> str:
         messages = [{"role": "user", "content": prompt}]
@@ -264,16 +276,36 @@ class LLMClient:
             logger.error(f"OpenAI API async stream error: {e}")
             raise
 
+    def _extract_embedding(self, response) -> List[float]:
+        """Extract embedding vector from response, handling different formats."""
+        if hasattr(response, "data"):
+            data = response.data
+            if isinstance(data, dict):
+                if "embedding" in data:
+                    return data["embedding"]
+                if isinstance(data.get("data"), list):
+                    return data["data"][0].get("embedding", [])
+            elif isinstance(data, list) and len(data) > 0:
+                item = data[0]
+                if hasattr(item, "embedding"):
+                    return item.embedding
+                if isinstance(item, dict):
+                    return item.get("embedding", [])
+        return []
+
     def _request_embedding(self, text: str, **kwargs) -> List[float]:
         try:
-            if self.provider != LLMProvider.DOUBAO.value:
-                response = self.client.embeddings.create(model=self.model, input=[text])
-                embedding = response.data[0].embedding
-            else:
+            if self.provider == LLMProvider.DOUBAO.value:
                 response = self.client.multimodal_embeddings.create(
                     model=self.model, input=[{"type": "text", "text": text}]
                 )
                 embedding = response.data.embedding
+            else:
+                response = self.client.embeddings.create(model=self.model, input=[text])
+                embedding = self._extract_embedding(response)
+                if not embedding:
+                    # 兜底：尝试通过 OpenAI 标准字段访问
+                    embedding = response.data[0].embedding if hasattr(response.data[0], "embedding") else []
 
             # Record token usage
             if hasattr(response, "usage") and response.usage:
@@ -285,17 +317,17 @@ class LLMClient:
                         prompt_tokens = usage.get("prompt_tokens", 0)
                         total_tokens = usage.get("total_tokens", 0)
                     else:
-                        prompt_tokens = usage.prompt_tokens
-                        total_tokens = usage.total_tokens
+                        prompt_tokens = usage.prompt_tokens or 0
+                        total_tokens = usage.total_tokens or 0
 
                     record_token_usage(
                         model=self.model,
                         prompt_tokens=prompt_tokens,
-                        completion_tokens=0,  # embedding has no completion tokens
+                        completion_tokens=0,
                         total_tokens=total_tokens,
                     )
                 except ImportError:
-                    pass  # Monitoring module not installed or initialized
+                    pass
 
             output_dim = kwargs.get("output_dim", self.config.get("output_dim", 0))
             if output_dim and len(embedding) > output_dim:
@@ -314,14 +346,15 @@ class LLMClient:
     async def _request_embedding_async(self, text: str, **kwargs) -> List[float]:
         try:
             if self.provider == LLMProvider.DOUBAO.value:
-                # Only ark has multimodal_embeddings
                 response = self.client.multimodal_embeddings.create(
                     model=self.model, input=[{"type": "text", "text": text}]
                 )
                 embedding = response.data.embedding
             else:
                 response = await self.async_client.embeddings.create(model=self.model, input=[text])
-                embedding = response.data[0].embedding
+                embedding = self._extract_embedding(response)
+                if not embedding:
+                    embedding = response.data[0].embedding if hasattr(response.data[0], "embedding") else []
 
             # Record token usage
             if hasattr(response, "usage") and response.usage:
@@ -333,17 +366,17 @@ class LLMClient:
                         prompt_tokens = usage.get("prompt_tokens", 0)
                         total_tokens = usage.get("total_tokens", 0)
                     else:
-                        prompt_tokens = usage.prompt_tokens
-                        total_tokens = usage.total_tokens
+                        prompt_tokens = usage.prompt_tokens or 0
+                        total_tokens = usage.total_tokens or 0
 
                     record_token_usage(
                         model=self.model,
                         prompt_tokens=prompt_tokens,
-                        completion_tokens=0,  # embedding has no completion tokens
+                        completion_tokens=0,
                         total_tokens=total_tokens,
                     )
                 except ImportError:
-                    pass  # Monitoring module not installed or initialized
+                    pass
 
             output_dim = kwargs.get("output_dim", self.config.get("output_dim", 0))
             if output_dim and len(embedding) > output_dim:
@@ -476,7 +509,6 @@ class LLMClient:
                     return False, "Chat model returned empty response"
 
             elif self.llm_type == LLMType.EMBEDDING:
-                # Test with a simple text
                 if self.provider == LLMProvider.DOUBAO.value:
                     response = self.client.multimodal_embeddings.create(
                         model=self.model, input=[{"type": "text", "text": "test"}]
@@ -487,10 +519,12 @@ class LLMClient:
                         return False, "Embedding model returned empty response"
                 else:
                     response = self.client.embeddings.create(model=self.model, input=["test"])
-                    if response.data and len(response.data) > 0 and response.data[0].embedding:
+                    emb = self._extract_embedding(response)
+                    if emb:
                         return True, "Embedding model validation successful"
-                    else:
-                        return False, "Embedding model returned empty response"
+                    if response.data and len(response.data) > 0 and hasattr(response.data[0], "embedding"):
+                        return True, "Embedding model validation successful"
+                    return False, "Embedding model returned empty response"
             else:
                 return False, f"Unsupported LLM type: {self.llm_type}"
 

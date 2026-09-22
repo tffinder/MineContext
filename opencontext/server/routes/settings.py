@@ -58,11 +58,32 @@ class UpdateModelSettingsResponse(BaseModel):
 # ==================== Helper Functions ====================
 
 
+def _normalize_provider(provider: str) -> str:
+    """Normalize provider string to a known LLMProvider value.
+
+    The frontend uses 'custom' for arbitrary OpenAI-compatible services,
+    which the backend treats as the 'generic' provider.
+    """
+    if not provider:
+        return "openai"
+    normalized = provider.strip().lower()
+    known = {"openai", "doubao", "ollama", "generic"}
+    if normalized in known:
+        return normalized
+    # 'custom' and any other unknown value map to the generic OpenAI-compatible provider
+    return "generic"
+
+
 def _build_llm_config(
     base_url: str, api_key: str, model: str, provider: str, llm_type: LLMType, **kwargs
 ) -> dict:
     """Build LLM config dict"""
-    config = {"base_url": base_url, "api_key": api_key, "model": model, "provider": provider}
+    config = {
+        "base_url": base_url,
+        "api_key": api_key,
+        "model": model,
+        "provider": _normalize_provider(provider),
+    }
 
     # Add optional parameters
     if "timeout" in kwargs:
@@ -120,13 +141,7 @@ async def update_model_settings(request: UpdateModelSettingsRequest, _auth: str 
             emb_url = cfg.embeddingBaseUrl or cfg.baseUrl
             emb_provider = cfg.embeddingModelPlatform or cfg.modelPlatform
 
-            # Validation
-            if not vlm_key:
-                return convert_resp(code=400, status=400, message="VLM API key cannot be empty")
-            if not emb_key:
-                return convert_resp(
-                    code=400, status=400, message="Embedding API key cannot be empty"
-                )
+            # Validation — Ollama 不要求 API key，其他 provider 可以为空（由 LLMClient 兜底）
             if not cfg.modelId:
                 return convert_resp(code=400, status=400, message="VLM model ID cannot be empty")
             if not cfg.embeddingModelId:
@@ -154,7 +169,7 @@ async def update_model_settings(request: UpdateModelSettingsRequest, _auth: str 
                     code=400, status=400, message=f"Embedding validation failed: {emb_msg}"
                 )
 
-            # Save configuration (without timeout limit)
+            # 保存配置（不含 timeout 限制）
             vlm_config_save = _build_llm_config(
                 cfg.baseUrl, vlm_key, cfg.modelId, cfg.modelPlatform, LLMType.CHAT
             )
@@ -209,11 +224,7 @@ async def validate_llm_config(request: UpdateModelSettingsRequest, _auth: str = 
         emb_url = cfg.embeddingBaseUrl or cfg.baseUrl
         emb_provider = cfg.embeddingModelPlatform or cfg.modelPlatform
 
-        # Validation
-        if not vlm_key:
-            return convert_resp(code=400, status=400, message="VLM API key cannot be empty")
-        if not emb_key:
-            return convert_resp(code=400, status=400, message="Embedding API key cannot be empty")
+        # Validation — 仅校验 modelId，API key 对 Ollama/Generic 可为空
         if not cfg.modelId:
             return convert_resp(code=400, status=400, message="VLM model ID cannot be empty")
         if not cfg.embeddingModelId:

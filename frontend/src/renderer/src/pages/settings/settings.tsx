@@ -246,15 +246,27 @@ const Settings: FC<SettingsProps> = (props) => {
       const formatData = Object.fromEntries(
         Object.entries(data).map(([key, value]) => [key.replace(`${values.modelPlatform}-`, ''), value])
       )
+
+      // 各平台的默认 base_url 与默认 embedding 模型映射
+      const platformBaseUrl: Record<string, string> = {
+        [ModelTypeList.Doubao]: BaseUrl.DoubaoUrl,
+        [ModelTypeList.OpenAI]: BaseUrl.OpenAIUrl,
+        [ModelTypeList.Ollama]: BaseUrl.OllamaUrl,
+        [ModelTypeList.Generic]: BaseUrl.GenericUrl
+      }
+      const platformEmbeddingModel: Record<string, string> = {
+        [ModelTypeList.Doubao]: embeddingModels.DoubaoEmbeddingModelId,
+        [ModelTypeList.OpenAI]: embeddingModels.OpenAIEmbeddingModelId,
+        [ModelTypeList.Ollama]: embeddingModels.OllamaEmbeddingModelId,
+        [ModelTypeList.Generic]: embeddingModels.GenericEmbeddingModelId
+      }
+
       const params = isCustom
         ? formatData
         : {
             ...formatData,
-            baseUrl: values.modelPlatform === ModelTypeList.Doubao ? BaseUrl.DoubaoUrl : BaseUrl.OpenAIUrl,
-            embeddingModelId:
-              values.modelPlatform === ModelTypeList.Doubao
-                ? embeddingModels.DoubaoEmbeddingModelId
-                : embeddingModels.OpenAIEmbeddingModelId
+            baseUrl: platformBaseUrl[values.modelPlatform] ?? BaseUrl.OpenAIUrl,
+            embeddingModelId: platformEmbeddingModel[values.modelPlatform] ?? embeddingModels.OpenAIEmbeddingModelId
           }
 
       updateModelSettings(params as unknown as ModelConfigProps)
@@ -311,6 +323,10 @@ const Settings: FC<SettingsProps> = (props) => {
                   const modelPlatform = values.modelPlatform
                   if (modelPlatform === ModelTypeList.Custom) {
                     return <CustomFormItems prefix={ModelTypeList.Custom} />
+                  } else if (modelPlatform === ModelTypeList.Ollama) {
+                    return <CustomFormItems prefix={ModelTypeList.Ollama} />
+                  } else if (modelPlatform === ModelTypeList.Generic) {
+                    return <CustomFormItems prefix={ModelTypeList.Generic} />
                   } else if (modelPlatform === ModelTypeList.Doubao) {
                     return <StandardFormItems modelPlatform={modelPlatform} prefix={ModelTypeList.Doubao} />
                   } else if (modelPlatform === ModelTypeList.OpenAI) {
