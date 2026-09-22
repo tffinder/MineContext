@@ -3,9 +3,9 @@
 
 import React, { createContext, useContext, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import type { RootState, AppDispatch } from '../../store'
-import { setLanguage } from '../../store/setting'
-import { translations, type Language, type TranslationKey } from '../../i18n'
+import type { RootState, AppDispatch } from '../store'
+import { setLanguage } from '../store/setting'
+import { translations, type Language, type TranslationKey } from '../i18n'
 
 type I18nContextType = {
   lang: Language
