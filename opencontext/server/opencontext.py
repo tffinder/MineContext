@@ -232,6 +232,25 @@ class OpenContext:
             path, window, create_time, app, self.add_context
         )
 
+    def retry_failed_screenshots(self) -> Dict[str, Any]:
+        """重试处理失败的截图，返回重试结果统计。
+
+        Returns:
+            dict: {"retried": int, "pending": int}
+        """
+        processor = self.processor_manager.get_processor("screenshot_processor")
+        if processor is None:
+            logger.warning("Screenshot processor not found.")
+            return {"retried": 0, "pending": 0}
+        pending_before = getattr(processor, "get_failed_count", lambda: 0)()
+        retried = getattr(processor, "retry_failed", lambda: 0)()
+        pending_after = getattr(processor, "get_failed_count", lambda: 0)()
+        logger.info(
+            f"Retried {retried} failed screenshot(s), {pending_after} still pending "
+            f"(was {pending_before})."
+        )
+        return {"retried": retried, "pending": pending_after}
+
     def add_document(self, file_path: str) -> Optional[str]:
         """Add a document to the system."""
         if not self.context_operations:

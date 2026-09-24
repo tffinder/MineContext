@@ -61,7 +61,6 @@ class ScreenshotProcessor(BaseContextProcessor):
         config = get_config("processing.screenshot_processor") or {}
         super().__init__(config)
 
-
         self._similarity_hash_threshold = self.config.get("similarity_hash_threshold", 2)
         self._batch_size = self.config.get("batch_size", 10)
         self._batch_timeout = self.config.get("batch_timeout", 20)  # seconds
@@ -69,6 +68,10 @@ class ScreenshotProcessor(BaseContextProcessor):
         self._max_image_size = self.config.get("max_image_size", 0)
         self._resize_quality = self.config.get("resize_quality", 95)
         self._enabled_delete = self.config.get("enabled_delete", False)
+        # 重试配置
+        self._max_retry_count = self.config.get("max_retry_count", 3)
+        self._retry_delay_seconds = self.config.get("retry_delay_seconds", 5)
+        self._failed_contexts_max = self.config.get("failed_contexts_max", 50)
 
         self._stop_event = threading.Event()
 
@@ -78,10 +81,11 @@ class ScreenshotProcessor(BaseContextProcessor):
         self._processing_task.start()
 
         # State cache
-        self._processed_cache = (
-            {}
-        )
+        self._processed_cache = {}
         self._current_screenshot = deque(maxlen=self._batch_size * 2)
+        # 失败截图缓存，供重试用
+        self._failed_contexts: deque = deque(maxlen=self._failed_contexts_max)
+        self._failed_context_lock = threading.Lock()
 
     def shutdown(self, graceful: bool = False):
         """Gracefully shut down background processing tasks."""
@@ -211,6 +215,8 @@ class ScreenshotProcessor(BaseContextProcessor):
                     error_msg, processor_name=self.get_name(), context_count=len(unprocessed_contexts)
                 )
                 increment_recording_stat("failed", len(unprocessed_contexts))
+                # 暂存失败上下文，供重试用
+                self._store_failed_contexts(unprocessed_contexts)
                 continue
             try:
                 duration_ms = int((time.time() - start_time) * 1000)
@@ -529,6 +535,49 @@ class ScreenshotProcessor(BaseContextProcessor):
         # Step 2: Merge contexts concurrently
         newly_processed_contexts = await self._merge_contexts(all_vlm_items)
         return newly_processed_contexts
+
+    def _store_failed_contexts(self, raw_contexts: List[RawContextProperties]):
+        """暂存处理失败的原始截图上下文，供后续重试。"""
+        with self._failed_context_lock:
+            for ctx in raw_contexts:
+                if ctx is None:
+                    continue
+                path = getattr(ctx, "content_path", None)
+                # 避免重复暂存同一个文件
+                if not any(getattr(c, "content_path", None) == path for c in self._failed_contexts):
+                    self._failed_contexts.append(ctx)
+        logger.info(
+            f"Stored {len(raw_contexts)} failed screenshot(s) for retry "
+            f"(total pending: {len(self._failed_contexts)})"
+        )
+
+    def get_failed_count(self) -> int:
+        """返回待重试的失败截图数量。"""
+        with self._failed_context_lock:
+            return len(self._failed_contexts)
+
+    def retry_failed(self) -> int:
+        """将缓存的失败截图重新放入处理队列，返回重新入队的数量。
+
+        返回:
+            int: 重新入队的截图数量，若无失败截图则返回 0。
+        """
+        with self._failed_context_lock:
+            if not self._failed_contexts:
+                logger.info("No failed screenshots to retry.")
+                return 0
+            retry_list = list(self._failed_contexts)
+            self._failed_contexts.clear()
+
+        requeued = 0
+        for ctx in retry_list:
+            try:
+                self._input_queue.put(ctx, timeout=2)
+                requeued += 1
+            except queue.Full:
+                logger.warning("Input queue is full, skipping retry for one screenshot.")
+        logger.info(f"Requeued {requeued} screenshot(s) for retry.")
+        return requeued
 
     def _create_processed_context(self, analysis: Dict[str, Any], raw_context: RawContextProperties = None) -> ProcessedContext:
         now = datetime.datetime.now()

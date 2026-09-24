@@ -68,3 +68,24 @@ async def add_screenshots(
     except Exception as e:
         logger.exception(f"Error adding screenshots: {e}")
     return convert_resp(code=500, status=500, message="Internal server error")
+
+
+@router.post("/api/screenshots/retry-failed", response_class=JSONResponse)
+async def retry_failed_screenshots(
+    opencontext: OpenContext = Depends(get_context_lab),
+    _auth: str = auth_dependency,
+):
+    """Retry processing of previously failed screenshots."""
+    try:
+        result = opencontext.retry_failed_screenshots()
+        return convert_resp(
+            data=result,
+            message=(
+                f"Retried {result.get('retried', 0)} screenshot(s)"
+                if result.get("retried", 0) > 0
+                else "No failed screenshots to retry"
+            ),
+        )
+    except Exception as e:
+        logger.exception(f"Error retrying failed screenshots: {e}")
+    return convert_resp(code=500, status=500, message="Internal server error")
