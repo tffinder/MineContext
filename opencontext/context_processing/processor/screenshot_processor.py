@@ -214,9 +214,16 @@ class ScreenshotProcessor(BaseContextProcessor):
                 record_processing_error(
                     error_msg, processor_name=self.get_name(), context_count=len(unprocessed_contexts)
                 )
-                increment_recording_stat("failed", len(unprocessed_contexts))
-                # 暂存失败上下文，供重试用
-                self._store_failed_contexts(unprocessed_contexts)
+                # 自动重试：失败截图延迟后重新入队，超过最大重试次数才标记为失败
+                if self._auto_retry(unprocessed_contexts):
+                    # 已自动重试，不计入 failed 统计
+                    logger.info(
+                        f"Auto-retrying {len(unprocessed_contexts)} screenshot(s) "
+                        f"(delay {self._retry_delay_seconds}s)"
+                    )
+                else:
+                    increment_recording_stat("failed", len(unprocessed_contexts))
+                    self._store_failed_contexts(unprocessed_contexts)
                 continue
             try:
                 duration_ms = int((time.time() - start_time) * 1000)
