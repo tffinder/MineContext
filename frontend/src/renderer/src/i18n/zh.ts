@@ -109,7 +109,6 @@ export const zh = {
   'screenMonitor.recordingStoppedManually': '你可以再次开始录制',
   'screenMonitor.everyNMinutes': '每 {n} 分钟，MineContext 会基于屏幕分析生成一条活动。',
   'screenMonitor.screenshotsProcessed': ' 个截图已处理',
-  'screenMonitor.screenshotsProcessedSingular': ' 个截图已处理',
   'screenMonitor.screenshotsFailed': ' 个截图失败',
   'screenMonitor.retry': '重试',
   'screenMonitor.retried': '已重试',
