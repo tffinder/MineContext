@@ -6,6 +6,7 @@ import { formatTime } from '@renderer/utils/time'
 import { SCREEN_INTERVAL_TIME } from '../constant'
 import RecordingStatsCard, { RecordingStats } from './recording-stats-card'
 import dayjs from 'dayjs'
+import { useI18n } from '@renderer/context/I18nProvider'
 
 const { Text } = Typography
 const TimelineItem = Timeline.Item
@@ -25,6 +26,7 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
   activities,
   recordingStats
 }) => {
+  const { t } = useI18n()
   console.log('[RecordingTimeline] Props:', {
     isMonitoring,
     isToday,
@@ -37,16 +39,16 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
     <div className="mt-5">
       <Timeline labelPosition="relative">
         {isToday && (
-          <TimelineItem label="Now" className="!pb-[24px]">
+          <TimelineItem label={t('screenMonitor.now')} className="!pb-[24px]">
             {isMonitoring ? (
               canRecord ? (
                 <>
                   <div className="w-full text-sm">
                     <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#5252FF] [&_.arco-typography]: !text-xs">
-                      Recording screen...
+                      {t('screenMonitor.recordingScreen')}
                     </Text>
                     <div className="text-[#C9C9D4]">
-                      Every {SCREEN_INTERVAL_TIME} minutes, MineContext generates an Activity based on screen analysis.
+                      {t('screenMonitor.everyNMinutes').replace('{n}', String(SCREEN_INTERVAL_TIME))}
                     </div>
                   </div>
                   <RecordingStatsCard stats={recordingStats} />
@@ -54,17 +56,17 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
               ) : (
                 <div className="w-full text-sm">
                   <Text className="[&_.arco-typography]: !font-bold [&_.arco-typography]: !text-[#FF4D4F] [&_.arco-typography]: !text-xs">
-                    Recording stopped
+                    {t('screenMonitor.recordingStopped')}
                   </Text>
                   <div className="text-[#C9C9D4]">
-                    It's not in recording hours now. Recording will automatically start at the next allowed time.
+                    {t('screenMonitor.recordingStoppedHours')}
                   </div>
                 </div>
               )
             ) : (
               <div style={{ width: '100%', fontSize: 14 }}>
-                <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>Recording stopped</Text>
-                <div style={{ color: '#C9C9D4' }}>You can start recording again</div>
+                <Text style={{ fontWeight: 'bold', color: '#FF4D4F', fontSize: 12 }}>{t('screenMonitor.recordingStopped')}</Text>
+                <div style={{ color: '#C9C9D4' }}>{t('screenMonitor.recordingStoppedManually')}</div>
               </div>
             )}
           </TimelineItem>

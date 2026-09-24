@@ -26,6 +26,7 @@ import { getLogger } from '@shared/logger/renderer'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { RecordingStats } from './components/recording-stats-card'
 import { CaptureSource } from '@interface/common/source'
+import { useI18n } from '@renderer/context/I18nProvider'
 
 const logger = getLogger('ScreenMonitor')
 
@@ -45,6 +46,7 @@ export interface Activity {
 const ScreenMonitor: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const {
     recordInterval,
     recordingHours,
@@ -461,7 +463,7 @@ const ScreenMonitor: React.FC = () => {
   const handleSave = useMemoizedFn(async () => {
     const values = form.getFieldsValue()
     if (![...(values.screenSources || []), ...(values.windowSources || [])].length) {
-      Message.info('Please select at least one screen or window')
+      Message.info(t('screenMonitor.empty.pleaseSelectSource'))
       return
     }
     const screenList = screenAllSources?.filter((source) => values.screenSources?.includes(source.id)) || []
@@ -538,7 +540,7 @@ const ScreenMonitor: React.FC = () => {
 
         <Modal
           style={{ width: '60%', minHeight: '30%' }}
-          title="Display Screenshot"
+          title={t('screenMonitor.displayScreenshot')}
           visible={!!selectedImage}
           onCancel={() => setSelectedImage(null)}
           footer={null}>

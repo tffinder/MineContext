@@ -1,6 +1,7 @@
 import React from 'react'
 import { Tooltip, Image } from '@arco-design/web-react'
 import { pathToFileURL } from '@renderer/utils/file'
+import { useI18n } from '@renderer/context/I18nProvider'
 
 export interface RecordingStats {
   processed_screenshots: number
@@ -20,6 +21,7 @@ interface RecordingStatsCardProps {
 }
 
 const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
+  const { t } = useI18n()
   console.log('[RecordingStatsCard] Rendering with stats:', stats)
 
   if (!stats) {
@@ -52,7 +54,7 @@ const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
       {/* Stats text */}
       <div className="text-xs text-[#86909C]">
         <span className="text-[#00B42A] font-medium">{stats.processed_screenshots}</span>
-        <span> screenshot{stats.processed_screenshots !== 1 ? 's' : ''} processed</span>
+        <span>{t('screenMonitor.screenshotsProcessed').replace('{s}', stats.processed_screenshots !== 1 ? 's' : '')}</span>
         {stats.failed_screenshots > 0 && (
           <>
             <span className="mx-2">•</span>

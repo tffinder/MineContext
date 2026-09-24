@@ -5,6 +5,7 @@ import { useMemoizedFn, useRequest } from 'ahooks'
 import dayjs from 'dayjs'
 import { capitalize, get, set } from 'lodash'
 import { FC, useEffect, useMemo, useState } from 'react'
+import { useI18n } from '@renderer/context/I18nProvider'
 import advancedFormat from 'dayjs/plugin/advancedFormat'
 import clsx from 'clsx'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
@@ -22,19 +23,19 @@ const getColor = (count: number) => {
 }
 export const HeatmapDataOptions = [
   {
-    label: 'Todos',
+    label: 'heatmap.todos',
     value: 'todos'
   },
   {
-    label: 'Creation',
+    label: 'heatmap.creation',
     value: 'vaults'
   },
   {
-    label: 'Context',
+    label: 'heatmap.context',
     value: 'context'
   },
   {
-    label: 'Chat',
+    label: 'heatmap.chat',
     value: 'conversations'
   }
 ]
@@ -75,6 +76,7 @@ export interface HeatmapEntryProps {
 }
 const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
   const { onChange } = props
+  const { t } = useI18n()
   const { data, loading } = useRequest(async () => {
     const res = await window.dbAPI.getHeatmapData(dayjs('2025-01-01').valueOf(), dayjs('2025-12-31').valueOf())
 
@@ -139,7 +141,7 @@ const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
     if (dayjs(days).isSameOrAfter(dayjs('2025-01-01'))) {
       setSelectedDays(days)
     } else {
-      Message.info('Cannot select past date')
+      Message.info(t('home.heatmap.cannotSelectPast'))
     }
   })
 
@@ -148,7 +150,7 @@ const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
     if (dayjs(days).isSameOrBefore(dayjs())) {
       setSelectedDays(days)
     } else {
-      Message.info('Cannot select future date')
+      Message.info(t('home.heatmap.cannotSelectFuture'))
     }
   })
   const [visible, setVisible] = useState(false)
@@ -194,7 +196,7 @@ const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
             <div
               onClick={handleChangeYear}
               className="rounded-[4px] flex items-center justify-center text-[12px] leading-[20px] font-medium text-[#3F3F51] bg-[#FFFFFF] border border-[#E1E3EF] px-[12px] py-[2px]">
-              Back
+              {t('home.heatmap.back')}
             </div>
             <div className="flex items-center gap-[6px]">
               <div
@@ -214,13 +216,13 @@ const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
           </div>
         )}
         <div className="flex items-center gap-[6px]">
-          <span className="text-[10px] leading-[24px] text-[#6E718C]">Less</span>
+          <span className="text-[10px] leading-[24px] text-[#6E718C]">{t('common.less')}</span>
           <div className="flex items-center gap-[2px]">
             {[0, 5, 10, 15, 20].map((count) => (
               <div key={count} className={`w-[6px] h-[6px] rounded-[1px] ${getColor(count)}`} />
             ))}
           </div>
-          <span className="text-[10px] leading-[24px] text-[#6E718C]">More</span>
+          <span className="text-[10px] leading-[24px] text-[#6E718C]">{t('common.more')}</span>
         </div>
       </div>
       <Divider className="!my-[10px]" />
@@ -264,7 +266,7 @@ const HeatmapEntry: FC<HeatmapEntryProps> = (props) => {
                 <div className="text-[18px] leading-[24px] font-medium text-[#0b0b0f]">
                   {new Intl.NumberFormat().format(item.value)}
                 </div>
-                <div className="text-[12px] leading-[20px] text-[#6E718C]">{item.label}</div>
+                <div className="text-[12px] leading-[20px] text-[#6E718C]">{t(item.label as any)}</div>
               </div>
             )
           })}

@@ -4,6 +4,7 @@
 import React, { useState } from 'react'
 import { Typography } from '@arco-design/web-react'
 import './home-page.css'
+import { useI18n } from '@renderer/context/I18nProvider'
 import { Allotment } from 'allotment'
 import { useAllotment } from '@renderer/hooks/use-allotment'
 import AIToggleButton from '@renderer/components/ai-toggle-button'
@@ -29,6 +30,7 @@ const { Title, Text } = Typography
 // });
 
 const HomePage: React.FC = () => {
+  const { t } = useI18n()
   const recentVaults = getRecentVaults()
   // const { isVisible, toggleAIAssistant, hideAIAssistant } = useAIAssistant()
   const isVisible = useSelector((state: RootState) => state.chatHistory.home.aiAssistantVisible)
@@ -58,12 +60,12 @@ const HomePage: React.FC = () => {
                   <div className="rounded-xl w-full flex justify-between items-start">
                     <div className="flex w-[639px] flex-col items-start gap-2">
                       <Title heading={3} style={{ marginTop: 5, fontWeight: 700, fontSize: 24 }}>
-                        Create with <span style={{ color: 'blue', fontWeight: 700 }}>Context</span>, Clarity from
-                        Chaos.👏
+                        {t('home.title.main')}
+                        <span style={{ color: 'blue', fontWeight: 700 }}>{t('home.title.highlight')}</span>
+                        {t('home.title.suffix')}
                       </Title>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        Home 1s where MineContext proactively delivers your daily summaries, todos, tips and other
-                        insights—emerging from all your collected Contexts ✨
+                        {t('home.subtitle')}
                       </Text>
                     </div>
                     <AIToggleButton onClick={() => dispatch(toggleHomeAiAssistant(true))} isActive={isVisible} />
@@ -74,8 +76,8 @@ const HomePage: React.FC = () => {
                     <HeatmapEntry onChange={onChange} />
                     <ToDoCard selectedDays={selectedDays} />
                     <LatestActivityCard
-                      title="Latest activity"
-                      emptyText="No activity in the last 7 days. "
+                      title={t('home.latestActivity')}
+                      emptyText={t('home.latestActivity.empty')}
                       hasToDocButton
                     />
                     <DocColumnsCard vaultsList={recentVaults} />

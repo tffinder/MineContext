@@ -3,6 +3,7 @@
 
 import { Card } from '@arco-design/web-react'
 import { FC } from 'react'
+import { useI18n } from '@renderer/context/I18nProvider'
 
 interface LatestActivityCardProps {
   title: string
@@ -14,6 +15,7 @@ interface LatestActivityCardProps {
 
 const CardLayout: FC<LatestActivityCardProps> = (props) => {
   const { title, seeAllClick, emptyText, children, isEmpty } = props
+  const { t } = useI18n()
 
   return (
     <Card
@@ -26,7 +28,7 @@ const CardLayout: FC<LatestActivityCardProps> = (props) => {
             <div
               className="text-[var(--text-color-text-2,#3F3F51)] font-['PingFang SC'] text-xs leading-[20px] cursor-pointer font-medium"
               onClick={seeAllClick}>
-              See all
+              {t('home.seeAll')}
             </div>
           ) : null}
         </div>

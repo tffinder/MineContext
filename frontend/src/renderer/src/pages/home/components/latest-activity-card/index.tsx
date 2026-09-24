@@ -3,6 +3,7 @@
 
 import { useNavigation } from '@renderer/hooks/use-navigation'
 import { FC, useState } from 'react'
+import { useI18n } from '@renderer/context/I18nProvider'
 import { CardLayout } from '../layout'
 import { useMount, useUnmount } from 'ahooks'
 import { ActivityTimelineItem } from '@renderer/pages/screen-monitor/components/activitie-timeline-item'
@@ -22,6 +23,7 @@ interface LatestActivityCardProps {
 // const LOCKED_INTERVAL = 300000 // Locked: 5 minutes
 
 const LatestActivityCard: FC<LatestActivityCardProps> = () => {
+  const { t } = useI18n()
   const { navigateToMainTab } = useNavigation()
 
   // Store polling timer ID
@@ -91,8 +93,8 @@ const LatestActivityCard: FC<LatestActivityCardProps> = () => {
   return (
     <CardLayout
       seeAllClick={handleNavigateToScreenMonitor}
-      title="Latest activity"
-      emptyText="No activity in the last 7 days. "
+      title={t('home.latestActivity')}
+      emptyText={t('home.latestActivity.empty')}
       isEmpty={isEmpty(latestActivity)}>
       {latestActivity ? (
         <ActivityTimelineItem
