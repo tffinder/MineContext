@@ -121,22 +121,28 @@ function AppContent(): React.ReactElement {
 }
 
 function App(): React.ReactElement {
+  return (
+    <Provider store={store}>
+      <AppProviderInner />
+    </Provider>
+  )
+}
+
+function AppProviderInner(): React.ReactElement {
   const language = useSelector((state: RootState) => state.setting?.language ?? 'en')
   const isEnglish = language === 'en'
   return (
-    <Provider store={store}>
-      <ConfigProvider locale={isEnglish ? enUS : zhCN}>
-        <ServiceProvider>
-          <NotificationProvider>
-            <I18nProvider>
-              <PersistGate loading={null} persistor={persistor}>
-                <AppContent />
-              </PersistGate>
-            </I18nProvider>
-          </NotificationProvider>
-        </ServiceProvider>
-      </ConfigProvider>
-    </Provider>
+    <ConfigProvider locale={isEnglish ? enUS : zhCN}>
+      <ServiceProvider>
+        <NotificationProvider>
+          <I18nProvider>
+            <PersistGate loading={null} persistor={persistor}>
+              <AppContent />
+            </PersistGate>
+          </I18nProvider>
+        </NotificationProvider>
+      </ServiceProvider>
+    </ConfigProvider>
   )
 }
 
