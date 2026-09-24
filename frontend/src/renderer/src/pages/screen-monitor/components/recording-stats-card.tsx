@@ -1,5 +1,6 @@
-import React from 'react'
-import { Tooltip, Image } from '@arco-design/web-react'
+import React, { useState } from 'react'
+import { Tooltip, Image, Button, Message } from '@arco-design/web-react'
+import { IconSync } from '@arco-design/web-react/icon'
 import { pathToFileURL } from '@renderer/utils/file'
 import { useI18n } from '@renderer/context/I18nProvider'
 
@@ -18,18 +19,31 @@ export interface RecordingStats {
 
 interface RecordingStatsCardProps {
   stats: RecordingStats | null
+  onRetry?: () => Promise<any>
 }
 
-const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
+const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats, onRetry }) => {
   const { t } = useI18n()
-  console.log('[RecordingStatsCard] Rendering with stats:', stats)
+  const [retrying, setRetrying] = useState(false)
 
-  if (!stats) {
-    console.log('[RecordingStatsCard] Stats is null, not rendering')
-    return null
+  const handleRetry = async () => {
+    if (!onRetry || retrying) return
+    setRetrying(true)
+    try {
+      const result = await onRetry()
+      if (result?.retried > 0) {
+        Message.success(`${t('screenMonitor.retried')}: ${result.retried}`)
+      } else {
+        Message.info(t('screenMonitor.noFailedToRetry'))
+      }
+    } catch {
+      Message.error(t('screenMonitor.retryFailed'))
+    } finally {
+      setRetrying(false)
+    }
   }
 
-  console.log('[RecordingStatsCard] Using stats:', stats)
+  if (!stats) return null
 
   return (
     <div className="mt-2">
@@ -54,31 +68,22 @@ const RecordingStatsCard: React.FC<RecordingStatsCardProps> = ({ stats }) => {
       {/* Stats text */}
       <div className="text-xs text-[#86909C]">
         <span className="text-[#00B42A] font-medium">{stats.processed_screenshots}</span>
-        <span>{t('screenMonitor.screenshotsProcessed').replace('{s}', stats.processed_screenshots !== 1 ? 's' : '')}</span>
+        <span>{t('screenMonitor.screenshotsProcessed')}</span>
         {stats.failed_screenshots > 0 && (
           <>
-            <span className="mx-2">•</span>
-            <Tooltip
-              content={
-                <div className="max-w-xs">
-                  <div className="font-medium mb-1">Recent Errors:</div>
-                  {stats.recent_errors.length > 0 ? (
-                    <ul className="text-xs space-y-1">
-                      {stats.recent_errors.map((error, index) => (
-                        <li key={index} className="break-words">
-                          {error.error_message}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-xs">No detailed error information available</span>
-                  )}
-                </div>
-              }>
-              <span className="text-[#FF4D4F] font-medium cursor-help underline decoration-dashed">
-                {stats.failed_screenshots} screenshot{stats.failed_screenshots > 1 ? 's' : ''} failed
-              </span>
-            </Tooltip>
+            <span className="mx-[2px]">•</span>
+            <span className="text-[#FF4D4F] font-medium">{stats.failed_screenshots}</span>
+            <span>{t('screenMonitor.screenshotsFailed')}</span>
+            <Button
+              type="text"
+              size="mini"
+              icon={<IconSync spin={retrying} />}
+              onClick={handleRetry}
+              loading={retrying}
+              className="!text-[#165DFF] !text-xs ml-1"
+              style={{ padding: '0 4px', height: 20 }}>
+              {t('screenMonitor.retry')}
+            </Button>
           </>
         )}
       </div>

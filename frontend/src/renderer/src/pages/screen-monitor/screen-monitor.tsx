@@ -301,6 +301,17 @@ const ScreenMonitor: React.FC = () => {
     setRecordingStats(null)
   })
 
+  // Retry failed screenshots
+  const handleRetryFailed = useMemoizedFn(async () => {
+    const result = await window.screenMonitorAPI.retryFailed()
+    // 重试后立即刷新统计
+    const stats = await window.screenMonitorAPI.getRecordingStats()
+    if (stats) {
+      setRecordingStats(stats)
+    }
+    return result
+  })
+
   // Clean up polling on component unmount
   useEffect(() => {
     return () => {
@@ -527,6 +538,7 @@ const ScreenMonitor: React.FC = () => {
                 canRecord={canRecord}
                 activities={activities}
                 recordingStats={recordingStats}
+                onRetry={handleRetryFailed}
               />
             ) : (
               <EmptyStatePlaceholder

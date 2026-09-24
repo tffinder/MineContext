@@ -17,6 +17,7 @@ interface RecordingTimelineProps {
   canRecord: boolean
   activities: Activity[]
   recordingStats: RecordingStats | null
+  onRetry?: () => Promise<any>
 }
 
 const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
@@ -24,7 +25,8 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
   isToday,
   canRecord,
   activities,
-  recordingStats
+  recordingStats,
+  onRetry
 }) => {
   const { t } = useI18n()
   console.log('[RecordingTimeline] Props:', {
@@ -51,7 +53,7 @@ const RecordingTimeline: React.FC<RecordingTimelineProps> = ({
                       {t('screenMonitor.everyNMinutes').replace('{n}', String(SCREEN_INTERVAL_TIME))}
                     </div>
                   </div>
-                  <RecordingStatsCard stats={recordingStats} />
+                  <RecordingStatsCard stats={recordingStats} onRetry={onRetry} />
                 </>
               ) : (
                 <div className="w-full text-sm">

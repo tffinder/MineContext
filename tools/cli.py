@@ -263,6 +263,14 @@ def cmd_test_embedding():
     print()
 
 
+def cmd_retry_failed():
+    """重试处理失败的截图"""
+    print("=== 重试失败的截图 ===")
+    r = api_post("/api/screenshots/retry-failed", {})
+    print_json(r)
+    return r
+
+
 def main():
     parser = argparse.ArgumentParser(description="MineContext CLI 测试客户端")
     sub = parser.add_subparsers(dest="cmd")
@@ -276,6 +284,7 @@ def main():
     sp_gen = sub.add_parser("gen", help="生成测试图片")
     sp_gen.add_argument("--output", default="test_screenshot.png", help="输出路径")
     sub.add_parser("vlm", help="直连测试 VLM 模型")
+    sub.add_parser("retry", help="重试失败的截图")
     sub.add_parser("test", help="全链路测试")
 
     args = parser.parse_args()
@@ -298,6 +307,8 @@ def main():
             print(f"图片保存到: {path}")
     elif args.cmd == "vlm":
         cmd_test_vlm_direct()
+    elif args.cmd == "retry":
+        cmd_retry_failed()
     elif args.cmd == "test":
         cmd_test_full()
     else:

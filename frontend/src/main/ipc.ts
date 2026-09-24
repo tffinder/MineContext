@@ -603,6 +603,34 @@ export function registerIpc(mainWindow: BrowserWindow, app: Electron.App) {
       return null
     }
   })
+
+  // Retry failed screenshots
+  ipcMain.handle(IpcChannel.Screen_Monitor_Retry_Failed, async () => {
+    try {
+      const backendPort = getBackendPort()
+      const url = `http://127.0.0.1:${backendPort}/api/screenshots/retry-failed`
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': 'minecontext_frontend_token'
+        }
+      })
+
+      if (!response.ok) {
+        logger.error(`Failed to retry screenshots: HTTP ${response.status}`)
+        return { retried: 0, pending: 0, error: `HTTP ${response.status}` }
+      }
+
+      const result = await response.json()
+      return result.data ?? { retried: 0, pending: 0 }
+    } catch (error) {
+      logger.error('Failed to retry screenshots:', error)
+      return { retried: 0, pending: 0, error: String(error) }
+    }
+  })
+
   ipcMain.handle(IpcChannel.Get_Heatmap_Data, async (_, startTime: number, endTime: number) => {
     return HeatmapService.getHeatmapData(startTime, endTime)
   })

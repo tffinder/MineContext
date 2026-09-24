@@ -332,6 +332,7 @@ export enum IpcChannel {
   Screen_Monitor_Set_Settings = 'screen-monitor:set-settings',
   Screen_Monitor_Clear_Settings = 'screen-monitor:clear-settings',
   Screen_Monitor_Get_Recording_Stats = 'screen-monitor:get-recording-stats',
+  Screen_Monitor_Retry_Failed = 'screen-monitor:retry-failed',
 
   // task
   Task_Update_Model_Config = 'task:update-model-config',
